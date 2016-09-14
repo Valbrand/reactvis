@@ -1,21 +1,82 @@
+import 'gsap';
 import React, { Component, PropTypes } from 'react';
+import { findDOMNode } from 'react-dom';
+import ReactTransitionGroup from 'react-addons-transition-group';
 const d3 = require('d3');
+
+class HistogramBar extends Component {
+  render () {
+    return (
+      <rect
+        x={this.props.x}
+        width={this.props.width}
+      />
+    );
+  }
+
+  componentWillAppear (callback) {
+    TweenLite.fromTo(
+      findDOMNode(this),
+      this.props.transitionDuration,
+      {
+        y: this.props.yScale(0),
+        height: 0,
+      },
+      {
+        y: this.props.y,
+        height: this.props.height,
+        ease: Cubic.easeOut,
+        onComplete: callback,
+      }
+    );
+  }
+
+  componentDidUpdate () {
+    TweenLite.to(
+      findDOMNode(this),
+      this.props.transitionDuration,
+      {
+        y: this.props.y,
+        height: this.props.height,
+        ease: Cubic.easeOut,
+      }
+    );
+  }
+}
+
+HistogramBar.propTypes = {
+  x: PropTypes.number.isRequired,
+  y: PropTypes.number.isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
+  yScale: PropTypes.func.isRequired,
+  transitionDuration: PropTypes.number.isRequired,
+};
 
 export default class Histogram extends Component {
   constructor (props, ...args) {
     super(props, ...args);
 
+    const xDomain = props.domain || [ 0, d3.max(props.data) ];
+
+    this.xScale = d3.scaleLinear()
+      .domain(xDomain)
+      .range([ 0, props.width ]);
+
+    this.binGenerator = d3.histogram()
+      .domain(this.xScale.domain())
+      .thresholds(this.xScale.ticks());
+
+    const bins = this.binGenerator(props.data);
+    const yDomain = [ 0, d3.max(bins, (entry) => entry.length) ];
+
+    this.yScale = d3.scaleLinear()
+      .domain(yDomain)
+      .range([ props.height, 0 ]);
+
     this.state = {
       isAdjusted: false,
     };
-
-    this.xScale = d3.scaleLinear()
-      .domain([ 0, d3.max(props.data) ])
-      .range([ 0, props.width ]);
-
-    this.yScale = d3.scaleLinear()
-      .domain([ 0, props.data.length ])
-      .range([ props.height, 0 ]);
 
     this.yAxisGroup = this.xAxisGroup = null;
     this.xOffset = this.yOffset = null;
@@ -26,27 +87,28 @@ export default class Histogram extends Component {
     const actualChartWidth = this.xScale.range()[1];
     const actualChartHeight = this.yScale.range()[0];
 
-    const processedData = this.props.data.reduce((result, entry) => {
-      result[]
+    const binGenerator = d3.histogram()
+      .domain(this.xScale.domain())
+      .thresholds(this.xScale.ticks());
+    const bins = binGenerator(this.props.data);
 
-      return result;
-    }, Array(this.props.data.length).fill(0));
+    const paddingWidth = this.props.padding * (bins.length);
+    const barWidth = (actualChartWidth - paddingWidth) / bins.length;
 
-    const paddingWidth = this.props.padding * (this.props.data.length - 1);
-    const barWidth = (actualChartWidth - paddingWidth) / this.props.data.length;
-
-    return this.props.data.map((entry, index) => {
-      const barX = (barWidth + this.props.padding) * index;
-      const barY = this.yScale(entry);
+    return bins.map((entry, index) => {
+      const barX = ((barWidth + this.props.padding) * index) + (this.props.padding / 2);
+      const barY = this.yScale(entry.length);
       const barHeight = actualChartHeight - barY;
 
       return (
-        <rect
+        <HistogramBar
           key={index}
           x={barX}
           y={barY}
           width={barWidth}
           height={barHeight}
+          yScale={this.yScale}
+          transitionDuration={this.props.transitionDuration}
         />
       );
     });
@@ -59,7 +121,9 @@ export default class Histogram extends Component {
           className="chartData"
           transform={`translate(${this.xOffset}, ${this.yPadding})`}
         >
-          {this.getChartBars()}
+          <ReactTransitionGroup component="g">
+            {this.getChartBars()}
+          </ReactTransitionGroup>
         </g>
       );
     } else {
@@ -153,9 +217,12 @@ Histogram.propTypes = {
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
   data: PropTypes.array.isRequired,
+  domain: PropTypes.array,
   padding: PropTypes.number,
+  transitionDuration: PropTypes.number,
 };
 
 Histogram.defaultProps = {
   padding: 5,
+  transitionDuration: 0.25,
 };

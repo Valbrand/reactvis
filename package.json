@@ -19,6 +19,7 @@
   "homepage": "https://github.com/Valbrand/reactvis#readme",
   "dependencies": {
     "d3": "^4.2.3",
+    "gsap": "^1.19.0",
     "react": "^15.3.1",
     "react-addons-transition-group": "^15.3.1",
     "react-dom": "^15.3.1"
