@@ -27,7 +27,6 @@
     "no-implied-eval": 2,
     "no-floating-decimal": 2,
     "no-iterator": 2,
-    "no-magic-numbers": 2,
     "no-loop-func": 2,
     "no-multi-spaces": 2,
     "no-multi-str": 2,

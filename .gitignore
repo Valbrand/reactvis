@@ -1,3 +1,8 @@
 npm-debug.log
+
 .idea/
 node_modules/
+
+docs/entry.jsx
+docs/dev.bundle.js
+docs/dev.bundle.js.map

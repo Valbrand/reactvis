@@ -2,18 +2,12 @@ const path = require('path');
 // const autoprefixer = require('autoprefixer');
 
 module.exports = {
-  entry: './src/index.tsx',
-
   devtool: 'source-map',
 
   resolve: {
     extensions: [ '', '.js', '.jsx' ],
   },
 
-  output: {
-    path: path.join(__dirname, 'app'),
-    filename: 'bundle.js',
-  },
   module: {
     preLoaders: [
       {
