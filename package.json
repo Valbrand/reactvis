@@ -4,7 +4,8 @@
   "description": "React components for simple data visualization",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "serve": "http-server ./docs -a localhost -p 8000 -c-1",
+    "devbuild": "webpack --progress --colors --watch"
   },
   "repository": {
     "type": "git",
