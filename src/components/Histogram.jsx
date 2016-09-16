@@ -57,44 +57,59 @@ export default class Histogram extends Component {
   constructor (props, ...args) {
     super(props, ...args);
 
-    const xDomain = this.props.domain || [ 0, d3.max(this.props.data) ];
+    this.yAxisGroup = this.xAxisGroup = null;
+    this.xOffset = this.yOffset = 0;
+    this.yPadding = this.xPadding = 0;
 
-    this.xScale = d3.scaleLinear()
-      .domain(xDomain)
-      .range([ 0, this.props.width ]);
-
-    this.binGenerator = d3.histogram()
-      .domain(this.xScale.domain())
-      .thresholds(this.xScale.ticks());
-
-    const bins = this.binGenerator(this.props.data);
-    const yDomain = [ 0, d3.max(bins, (entry) => entry.length) ];
-
-    this.yScale = d3.scaleLinear()
-      .domain(yDomain)
-      .range([ this.props.height, 0 ]);
+    const {
+      bins,
+      xScale,
+      yScale,
+    } = this.processedData(props.data);
 
     this.state = {
       isAdjusted: false,
+      xScale,
+      yScale,
+      bins,
     };
+  }
 
-    this.yAxisGroup = this.xAxisGroup = null;
-    this.xOffset = this.yOffset = null;
-    this.yPadding = this.xPadding = 0;
+  processedData (data) {
+    const xDomain = this.props.domain || [ 0, d3.max(data) ];
+
+    const xScale = d3.scaleLinear()
+      .domain(xDomain)
+      .range([ 0, this.props.width - (this.xOffset + this.xPadding) ]);
+
+    const binGenerator = d3.histogram()
+      .domain(xScale.domain())
+      .thresholds(xScale.ticks());
+
+    const bins = binGenerator(data);
+    const yDomain = [ 0, d3.max(bins, (entry) => entry.length) ];
+
+    const yScale = d3.scaleLinear()
+      .domain(yDomain)
+      .range([ this.props.height - (this.yOffset + this.yPadding), 0 ]);
+
+    return {
+      bins,
+      xScale,
+      yScale,
+    };
   }
 
   getChartBars () {
-    const actualChartWidth = this.xScale.range()[1];
-    const actualChartHeight = this.yScale.range()[0];
+    const actualChartWidth = this.state.xScale.range()[1];
+    const actualChartHeight = this.state.yScale.range()[0];
 
-    const bins = this.binGenerator(this.props.data);
+    const totalPaddingWidth = this.props.padding * (this.state.bins.length + 1);
+    const barWidth = (actualChartWidth - totalPaddingWidth) / this.state.bins.length;
 
-    const paddingWidth = this.props.padding * (bins.length);
-    const barWidth = (actualChartWidth - paddingWidth) / bins.length;
-
-    return bins.map((entry, index) => {
-      const barX = ((barWidth + this.props.padding) * index) + (this.props.padding / 2);
-      const barY = this.yScale(entry.length);
+    return this.state.bins.map((entry, index) => {
+      const barX = ((barWidth + this.props.padding) * index) + this.props.padding;
+      const barY = this.state.yScale(entry.length);
       const barHeight = actualChartHeight - barY;
 
       return (
@@ -104,7 +119,7 @@ export default class Histogram extends Component {
           y={barY}
           width={barWidth}
           height={barHeight}
-          yScale={this.yScale}
+          yScale={this.state.yScale}
           transitionDuration={this.props.transitionDuration}
         />
       );
@@ -129,6 +144,8 @@ export default class Histogram extends Component {
   }
 
   render () {
+    console.log('render');
+
     return (
       <svg
         ref="chart"
@@ -151,7 +168,7 @@ export default class Histogram extends Component {
         .attr('transform', `translate(${this.xOffset}, ${this.yPadding})`);
     }
 
-    const axis = d3.axisLeft(this.yScale);
+    const axis = d3.axisLeft(this.state.yScale);
 
     this.yAxisGroup.call(axis);
   }
@@ -167,7 +184,7 @@ export default class Histogram extends Component {
         .attr('transform', `translate(${this.xOffset}, ${this.props.height - this.yOffset})`);
     }
 
-    const axis = d3.axisBottom(this.xScale);
+    const axis = d3.axisBottom(this.state.xScale);
 
     this.xAxisGroup.call(axis);
   }
@@ -186,17 +203,9 @@ export default class Histogram extends Component {
       this.yPadding = yAxisBoundingBox.height - this.props.height;
     }
 
-    this.xScale.range([ 0, this.props.width - (this.xOffset + this.xPadding) ]);
-    this.yScale.range([ this.props.height - (this.yOffset + this.yPadding), 0 ]);
+    this.state.xScale.range([ 0, this.props.width - (this.xOffset + this.xPadding) ]);
+    this.state.yScale.range([ this.props.height - (this.yOffset + this.yPadding), 0 ]);
   }
-
-  // componentWillReceiveProps (nextProps) {
-  //   if (nextProps.data && nextProps.data !== this.props.data) {
-  //     this.setState({
-  //       isAdjusted: false,
-  //     });
-  //   }
-  // }
 
   componentDidMount () {
     if (!this.state.isAdjusted) {
@@ -212,9 +221,35 @@ export default class Histogram extends Component {
     }
   }
 
+  componentWillReceiveProps (nextProps) {
+    if (nextProps.data && nextProps.data !== this.props.data) {
+      const {
+        bins,
+        xScale,
+        yScale,
+      } = this.processedData(nextProps.data);
+
+      this.setState({
+        isAdjusted: false,
+        bins,
+        xScale,
+        yScale,
+      });
+    }
+  }
+
   componentDidUpdate () {
     this.createYAxis();
     this.createXAxis();
+
+    if (!this.state.isAdjusted) {
+      this.adjustScales();
+
+      /* eslint react/no-did-mount-set-state: 0 */
+      this.setState({
+        isAdjusted: true,
+      });
+    }
   }
 }
 
