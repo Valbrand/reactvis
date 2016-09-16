@@ -57,22 +57,22 @@ export default class Histogram extends Component {
   constructor (props, ...args) {
     super(props, ...args);
 
-    const xDomain = props.domain || [ 0, d3.max(props.data) ];
+    const xDomain = this.props.domain || [ 0, d3.max(this.props.data) ];
 
     this.xScale = d3.scaleLinear()
       .domain(xDomain)
-      .range([ 0, props.width ]);
+      .range([ 0, this.props.width ]);
 
     this.binGenerator = d3.histogram()
       .domain(this.xScale.domain())
       .thresholds(this.xScale.ticks());
 
-    const bins = this.binGenerator(props.data);
+    const bins = this.binGenerator(this.props.data);
     const yDomain = [ 0, d3.max(bins, (entry) => entry.length) ];
 
     this.yScale = d3.scaleLinear()
       .domain(yDomain)
-      .range([ props.height, 0 ]);
+      .range([ this.props.height, 0 ]);
 
     this.state = {
       isAdjusted: false,
@@ -80,17 +80,14 @@ export default class Histogram extends Component {
 
     this.yAxisGroup = this.xAxisGroup = null;
     this.xOffset = this.yOffset = null;
-    this.yPadding = null;
+    this.yPadding = this.xPadding = 0;
   }
 
   getChartBars () {
     const actualChartWidth = this.xScale.range()[1];
     const actualChartHeight = this.yScale.range()[0];
 
-    const binGenerator = d3.histogram()
-      .domain(this.xScale.domain())
-      .thresholds(this.xScale.ticks());
-    const bins = binGenerator(this.props.data);
+    const bins = this.binGenerator(this.props.data);
 
     const paddingWidth = this.props.padding * (bins.length);
     const barWidth = (actualChartWidth - paddingWidth) / bins.length;
@@ -193,6 +190,14 @@ export default class Histogram extends Component {
     this.yScale.range([ this.props.height - (this.yOffset + this.yPadding), 0 ]);
   }
 
+  // componentWillReceiveProps (nextProps) {
+  //   if (nextProps.data && nextProps.data !== this.props.data) {
+  //     this.setState({
+  //       isAdjusted: false,
+  //     });
+  //   }
+  // }
+
   componentDidMount () {
     if (!this.state.isAdjusted) {
       this.createYAxis();
@@ -224,5 +229,5 @@ Histogram.propTypes = {
 
 Histogram.defaultProps = {
   padding: 5,
-  transitionDuration: 0.25,
+  transitionDuration: 0.5,
 };
