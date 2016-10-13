@@ -6,10 +6,15 @@ const d3 = require('d3');
 
 class HistogramBar extends Component {
   render () {
+    let fillColor = d3.rgb(130, 130, 130);
+    let strokeColor = fillColor.darker(1);
+
     return (
       <rect
         x={this.props.x}
         width={this.props.width}
+        fill={fillColor}
+        stroke={strokeColor}
       />
     );
   }
@@ -127,25 +132,19 @@ export default class Histogram extends Component {
   }
 
   getChartContent () {
-    if (this.state.isAdjusted) {
-      return (
-        <g
-          className="chartData"
-          transform={`translate(${this.xOffset}, ${this.yPadding})`}
-        >
-          <ReactTransitionGroup component="g">
-            {this.getChartBars()}
-          </ReactTransitionGroup>
-        </g>
-      );
-    } else {
-      return null;
-    }
+    return (
+      <g
+        className="chartData"
+        transform={`translate(${this.xOffset}, ${this.yPadding})`}
+      >
+        <ReactTransitionGroup component="g">
+          {this.getChartBars()}
+        </ReactTransitionGroup>
+      </g>
+    );
   }
 
   render () {
-    console.log('render');
-
     return (
       <svg
         ref="chart"
@@ -168,7 +167,9 @@ export default class Histogram extends Component {
         .attr('transform', `translate(${this.xOffset}, ${this.yPadding})`);
     }
 
-    const axis = d3.axisLeft(this.state.yScale);
+    const axis = d3.axisLeft(this.state.yScale)
+      .tickValues([ 0, this.state.yScale.domain()[1] ])
+      .tickFormat(d3.format('d'));
 
     this.yAxisGroup.call(axis);
   }
@@ -263,6 +264,6 @@ Histogram.propTypes = {
 };
 
 Histogram.defaultProps = {
-  padding: 5,
+  padding: 0,
   transitionDuration: 0.5,
 };
